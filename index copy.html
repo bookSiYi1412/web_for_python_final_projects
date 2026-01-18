@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Human Brain Cell Atlas Classification Deep Learning Project</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 56px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        section {
+            padding: 60px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .hero-section {
+            background: linear-gradient(45deg, #2c3e50, #3498db);
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+        }
+        .feature-icon {
+            font-size: 2rem;
+            color: #3498db;
+            margin-bottom: 1rem;
+        }
+        .img-fluid {
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 4px;
+            color: #e83e8c;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+        <a class="navbar-brand" href="#">Brain Cell Classifier</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="#overview">Overview</a></li>
+                <li class="nav-item"><a class="nav-link" href="#preprocessing">Data & Preprocessing</a></li>
+                <li class="nav-item"><a class="nav-link" href="#analysis">Statistical Analysis</a></li>
+                <li class="nav-item"><a class="nav-link" href="#model">Model Architecture</a></li>
+                <li class="nav-item"><a class="nav-link" href="#results">Results & Evaluation</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<header class="hero-section">
+    <div class="container">
+        <h1 class="display-4 fw-bold">Human Brain Cell Type Classification</h1>
+        <p class="lead">A Deep Learning approach using PyTorch and scRNA-seq data to map the human hippocampus.</p>
+        <a href="#overview" class="btn btn-outline-light btn-lg mt-3">Explore the Project</a>
+    </div>
+</header>
+
+<section id="overview">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h2 class="mb-4">Project Overview</h2>
+                <p class="lead text-muted">
+                    This project leverages single-cell RNA sequencing (scRNA-seq) data from the human hippocampus (YiZhou 2022 dataset) to build a robust deep learning classifier.
+                </p>
+                <p>
+                    The goal is to accurately identify diverse neuronal and glial cell types based on their gene expression profiles. Utilizing the <code>scanpy</code> library for robust bioinformatics processing and <code>PyTorch</code> for building a custom neural network, we achieved high classification accuracy on major cell types.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="preprocessing" class="bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">Data Reading & Preprocessing</h2>
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h3>Cleanup and Normalization</h3>
+                <p>Raw scRNA-seq data is inherently noisy. We used <code>scanpy</code> to perform rigorous quality control and normalization steps to ensure reliable model training.</p>
+                <ul>
+                    [cite_start]<li><strong>Data Loading:</strong> Loaded the full annotation H5AD file[cite: 53].</li>
+                    [cite_start]<li><strong>QC Filtering:</strong> Removed low-quality cells (less than 500 counts) and rarely expressed genes (appearing in fewer than 3 cells)[cite: 53].</li>
+                    [cite_start]<li><strong>Normalization:</strong> Total counts per cell normalized to 10,000 (TPM-like) and Log1p transformed[cite: 54].</li>
+                </ul>
+            </div>
+            <div class="col-lg-6">
+                <h3>Feature Selection</h3>
+                <p>To reduce dimensionality and focus on biologically relevant signals, we selected highly variable genes (HVGs).</p>
+                <div class="p-3 bg-white border rounded">
+                    <p><strong>Key Code Snippet:</strong></p>
+                    <pre><code># Normalize and Log Transform
+sc.pp.normalize_total(adata, target_sum=1e4)
+sc.pp.log1p(adata)
+
+# Select top 2048 highly variable genes
+sc.pp.highly_variable_genes(adata, n_top_genes=2048)
+adata_hvg = adata[:, adata.var.highly_variable]</code></pre>
+                </div>
+                [cite_start]<p class="mt-2 small text-muted">Based on notebook cells[cite: 54, 55, 56].</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="analysis">
+    <div class="container">
+        <h2 class="text-center mb-5">Statistical Analysis & Visualization</h2>
+        
+        <div class="row mb-5 align-items-center">
+             <div class="col-lg-5 order-lg-2">
+                <h3>Cell Type Distribution</h3>
+                <p>An initial exploratory analysis revealed significant class imbalance in the dataset. Major cell types like <em>Dentate Gyrus</em> granule cells and <em>Astrocytes</em> dominate, while extremely rare types have very few samples.</p>
+                [cite_start]<p>This imbalance presents a challenge for machine learning models, which we addressed using stratified data splitting[cite: 64].</p>
+            </div>
+            <div class="col-lg-7 order-lg-1">
+                <img src="assets/cell_distribution.png" alt="Barplot showing the distribution of different cell types" class="img-fluid">
+                [cite_start]<p class="text-center text-muted mt-2 small">Figure 1: Distribution of cell types in the processed dataset[cite: 59, 101].</p>
+            </div>
+        </div>
+
+        <div class="row align-items-center mt-5">
+            <div class="col-lg-5">
+                <h3>Dimensionality Reduction (UMAP)</h3>
+                [cite_start]<p>We utilized Principal Component Analysis (PCA) followed by Uniform Manifold Approximation and Projection (UMAP) to visualize the high-dimensional gene expression data in 2D space[cite: 101].</p>
+                <p>The resulting plot shows clear separation between distinct cell populations, suggesting that the gene expression features contain sufficient information for classification.</p>
+            </div>
+            <div class="col-lg-7">
+                 <img src="assets/umap_clusters.png" alt="UMAP plot showing cell clusters colored by cell type" class="img-fluid">
+                 [cite_start]<p class="text-center text-muted mt-2 small">Figure 2: UMAP visualization illustrating distinct cell type clusters[cite: 62, 100].</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="model" class="bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">Deep Learning Model Architecture</h2>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <p class="lead text-center">We designed a custom Multi-Layer Perceptron (MLP) using PyTorch to map the 2,048 input gene features to cell type probabilities.</p>
+            </div>
+        </div>
+        <div class="row mt-4">
+             <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h4 class="card-title">Network Structure</h4>
+                        [cite_start]<p>The model consists of an input layer followed by five densely connected hidden layers with decreasing dimensionality before the final output classification layer[cite: 65, 66].</p>
+                        <ul>
+                            <li><strong>Input:</strong> 2,048 dimensions (HVGs)</li>
+                            <li><strong>Hidden Layers:</strong> [4096] -> [4096] -> [1024] -> [256] -> [128]</li>
+                            <li><strong>Output:</strong> Softmax probability distribution over all cell types.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mt-3 mt-md-0">
+                 <div class="card h-100">
+                    <div class="card-body">
+                        <h4 class="card-title">Training Setup</h4>
+                        <ul>
+                            [cite_start]<li><strong>Data Split:</strong> Stratified Train/Validation/Test split to handle class imbalance[cite: 64].</li>
+                            [cite_start]<li><strong>Loss Function:</strong> CrossEntropyLoss for multi-class classification[cite: 66].</li>
+                            [cite_start]<li><strong>Optimizer:</strong> Adam optimizer (lr=0.001)[cite: 66].</li>
+                            [cite_start]<li><strong>Epochs:</strong> Trained for 5 epochs on GPU[cite: 72].</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="results">
+    <div class="container">
+        <h2 class="text-center mb-5">Results & Evaluation</h2>
+        
+        <div class="row mb-5">
+            <div class="col-lg-12 text-center">
+                <h3>Training Performance</h3>
+                 <p>The model showed rapid convergence. Both validation accuracy and F1-score plateaued around epoch 4-5, indicating effective learning without significant overfitting.</p>
+                <img src="assets/training_metrics.png" alt="Plots showing training loss, validation loss, accuracy, and F1 score over epochs" class="img-fluid mt-3" style="max-height: 400px;">
+                [cite_start]<p class="text-center text-muted mt-2 small">Figure 3: Training metrics showing Loss, Accuracy, and F1-score evolution over 5 epochs[cite: 73].</p>
+            </div>
+        </div>
+
+        <div class="row mt-5 justify-content-center">
+            <div class="col-lg-10">
+                <h3 class="text-center mb-4">Final Test Set Evaluation</h3>
+                
+                <div class="row text-center mb-4">
+                    <div class="col-md-6">
+                        <div class="p-4 bg-primary text-white rounded">
+                            <h4>Test Accuracy</h4>
+                            <div class="display-4">91.77%</div>
+                             [cite_start]<p class="mb-0 small">Overall accuracy on unseen test data[cite: 75].</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mt-3 mt-md-0">
+                        <div class="p-4 bg-success text-white rounded">
+                            <h4>Weighted F1-Score</h4>
+                            <div class="display-4">0.91</div>
+                            [cite_start]<p class="mb-0 small">Accounts for class imbalance[cite: 93].</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h4>Key Insights from Classification Report:</h4>
+
+                <div class="row justify-content-center mb-5">
+                    <div class="col-lg-12 text-center">
+                        <h3 class="mt-4">Confusion Matrix Analysis</h3>
+                        <p>Visualizing performance across all classes on the test set. The diagonal represents correct predictions.</p>
+                        <img src="assets/confusion_matrix_normalized.png" alt="Normalized Confusion Matrix Heatmap showing true vs predicted labels" class="img-fluid border rounded shadow-sm" style="max-height: 850px;">
+                        <p class="text-muted mt-2 small">Figure 4: Normalized Confusion Matrix. Rows represent true labels, columns represent predicted labels. Darker blues indicate a higher proportion of correct classifications for that true class.</p>
+                    </div>
+                </div>
+
+                <ul>
+                    [cite_start]<li><strong>High Performance on Major Types:</strong> The model achieved near-perfect classification for abundant cell types like <em>Astrocytes</em> (F1: 0.98) and <em>Oligodendrocyte precursors</em> (F1: 0.98)[cite: 76, 87].</li>
+                    [cite_start]<li><strong>Challenges with Rare Types:</strong> Extremely rare classes (e.g., <em>Bergmann glia</em>, <em>Thalamic excitatory</em> with < 5 samples) were not correctly classified (F1: 0.00), highlighting the limitation of deep learning given insufficient data[cite: 77, 89].</li>
+                    [cite_start]<li><strong>Subtype Distinction:</strong> The model successfully distinguished between closely related hippocampal subtypes like CA1-3 (F1: 0.94), CA4 (F1: 0.93), and Dentate Gyrus (F1: 0.97)[cite: 81, 82].</li>
+                </ul>
+                
+                <div class="text-center mt-4">
+                    [cite_start]<p class="text-muted">Detailed classification report available in the project notebook output [cite: 75-93].</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="bg-dark text-white text-center py-4">
+    <div class="container">
+        <p class="mb-0">Project completed for Deep Learning Coursework. Powered by Scanpy & PyTorch.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
